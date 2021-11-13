@@ -3,7 +3,6 @@ const Product = require("../models/Product");
 const {verifyTokenAndAuthorized, verifyTokenAndAdmin} = require("./verifyToken");
 
 //create 
-
 router.post("/", verifyTokenAndAdmin, async (req,res)=>{
     const newProduct = new Product(req.body)
 
@@ -18,12 +17,15 @@ router.post("/", verifyTokenAndAdmin, async (req,res)=>{
 //update
 router.put('/:id',verifyTokenAndAdmin, async (req,res)=>{
    try{
-       const updateProduct = await Product.findByIdAndUpdate(req.params.id, {
+       const updatedProduct = await Product.findByIdAndUpdate(req.params.id, 
+        {
            $set:req.body
-       },
-       {new:true},
+        },
+        {
+           new:true
+        },
     );
-    res.status(200).json(updateProduct);
+    res.status(200).json(updatedProduct);
    } catch(err) {
     res.status(500).json(err);
    }
@@ -40,51 +42,43 @@ router.delete("/:id", verifyTokenAndAdmin, async (req,res)=>{
     }
 })
 
-// //get
-// router.get("/find/:id", verifyTokenAndAdmin, async (req,res)=>{
-//     try{
-//         const user = await User.findById(req.params.id);
-//         const {password, ...others} = user._doc;
-//         res.status(200).json(others);
-//     }catch(err){
-//         res.status(500).json(err);
-//     }
-// })
+//get product
+router.get("/find/:id", async (req,res)=>{
+    try{
+        const product = await Product.findById(req.params.id);
+        res.status(200).json(product);
+    }catch(err){
+        res.status(500).json(err);
+    }
+})
 
-// //get all
-// router.get("/", verifyTokenAndAdmin, async (req,res)=>{
-//     const query = req.query.new;
-//     try{
-//         const users = query ? await User.find().sort({_id:-1}).limit(5) : await User.find();
-//         res.status(200).json(users);
-//     }catch(err){
-//         res.status(500).json(err)
-//     }
-// })
+//get all products
+router.get("/", async (req,res)=>{
+    const qNew = req.query.new;
+    const qCategory = req.query.category;
+    const qAuthor = req.query.author;
+    try{
+        let products = [];
 
-// //get user stats
-// router.get("/stats", verifyTokenAndAdmin, async (req,res)=>{
-//     const date = new Date();
-//     const lastYear= new Date(date.setFullYear(date.getFullYear() -1));
+        if(qNew){
+            products = await Product.find().sort({createdAt:-1}).limit(1);
+        } else if (qCategory){
+            products = await Product.find({categories:{
+                $in:[qCategory]
+            }});
+        } else if (qAuthor){
+            products = await Product.find({ author: { $in: [ qAuthor ] } });
+            console.log(qAuthor);
+        }
+        
+        else {
+            products = await Product.find();
+        }
 
-//     try{
-//         const data = await User.aggregate([
-//             {$match: {createdAt: {$gte:lastYear}}},
-//             {
-//                 $project:{
-//                     month:{$month:"$createdAt"}
-//                 }
-//             },
-//             {
-//                 $group:{
-//                     _id:"$month",
-//                     total:{$sum: 1}
-//                 }
-//             }
-//         ]);
-//         res.status(200).json(data);
-//     }catch(err){
-//         res.status(500).json(err);
-//     }
-// })
+        res.status(200).json(products);
+    }catch(err){
+        res.status(500).json(err)
+    }
+})
+
 module.exports = router;
